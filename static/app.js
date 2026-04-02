@@ -265,7 +265,10 @@ function toggleHowto(e) {
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
+let _modalTicket = null;
+
 function openModal(ticket) {
+  _modalTicket = ticket;
   const modal = document.getElementById('modal');
   document.getElementById('modal-subject').textContent = ticket.subject;
   document.getElementById('modal-from').textContent =
@@ -276,9 +279,18 @@ function openModal(ticket) {
   document.body.style.overflow = 'hidden';
 }
 
+function replyInOutlook() {
+  if (!_modalTicket) return false;
+  const to      = encodeURIComponent(_modalTicket.from_email || '');
+  const subject = encodeURIComponent('Re: ' + (_modalTicket.subject || ''));
+  window.location.href = `mailto:${to}?subject=${subject}`;
+  return false;
+}
+
 function closeModal() {
   document.getElementById('modal').classList.add('hidden');
   document.body.style.overflow = '';
+  _modalTicket = null;
 }
 
 document.addEventListener('keydown', e => {
