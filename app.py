@@ -3,6 +3,10 @@ import email
 import email.header
 import uuid
 import os
+import io
+import struct
+import datetime
+import olefile
 from flask import Flask, request, jsonify, send_from_directory
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
@@ -97,6 +101,65 @@ def parse_eml(file_bytes):
     }
 
 
+def _read_msg_stream(ole, path):
+    """Read a stream from the .msg OLE file as UTF-16-LE string."""
+    try:
+        data = ole.openstream(path).read()
+        return data.decode('utf-16-le', errors='replace').rstrip('\x00')
+    except Exception:
+        return ''
+
+
+def _read_msg_stream_utf8(ole, path):
+    try:
+        data = ole.openstream(path).read()
+        return data.decode('utf-8', errors='replace').rstrip('\x00')
+    except Exception:
+        return ''
+
+
+def parse_msg(file_bytes):
+    """Parse a .msg file using olefile (no native deps)."""
+    ole = olefile.OleFileIO(io.BytesIO(file_bytes))
+
+    # Property stream IDs (hex): subject=0037, sender name=0C1A, sender email=0C1F
+    # body=1000, submit time=0039 (binary FILETIME)
+    subject   = _read_msg_stream(ole, '__substg1.0_0037001F') or \
+                _read_msg_stream_utf8(ole, '__substg1.0_0037001E') or '(kein Betreff)'
+    from_name = _read_msg_stream(ole, '__substg1.0_0C1A001F') or \
+                _read_msg_stream_utf8(ole, '__substg1.0_0C1A001E') or ''
+    from_email = _read_msg_stream(ole, '__substg1.0_0C1F001F') or \
+                 _read_msg_stream_utf8(ole, '__substg1.0_0C1F001E') or ''
+    body      = _read_msg_stream(ole, '__substg1.0_1000001F') or \
+                _read_msg_stream_utf8(ole, '__substg1.0_1000001E') or ''
+
+    # Date from binary FILETIME (100-ns intervals since 1601-01-01)
+    date_formatted = ''
+    try:
+        raw = ole.openstream('__substg1.0_00390040').read()
+        if len(raw) >= 8:
+            ft = struct.unpack('<Q', raw[:8])[0]
+            # Convert Windows FILETIME to Unix timestamp
+            EPOCH_DIFF = 116444736000000000
+            ts = (ft - EPOCH_DIFF) / 10_000_000
+            dt = datetime.datetime.utcfromtimestamp(ts)
+            date_formatted = dt.strftime('%d.%m.%Y %H:%M')
+    except Exception:
+        pass
+
+    ole.fp.close()
+
+    preview = ' '.join(body.split())[:300]
+    return {
+        'subject': subject,
+        'from_name': from_name or from_email,
+        'from_email': from_email,
+        'date': date_formatted,
+        'preview': preview,
+        'message_id': str(uuid.uuid4()),
+    }
+
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @app.route('/')
@@ -116,10 +179,16 @@ def create_ticket():
         return jsonify({'error': 'Ungültige Spalte'}), 400
 
     if 'eml' not in request.files:
-        return jsonify({'error': 'Keine EML-Datei'}), 400
+        return jsonify({'error': 'Keine Datei'}), 400
 
     file = request.files['eml']
-    parsed = parse_eml(file.read())
+    file_bytes = file.read()
+    filename = file.filename or ''
+
+    if filename.lower().endswith('.msg'):
+        parsed = parse_msg(file_bytes)
+    else:
+        parsed = parse_eml(file_bytes)
 
     ticket = {
         'id': str(uuid.uuid4()),

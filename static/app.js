@@ -187,10 +187,11 @@ async function onColumnDrop(e) {
     e.preventDefault();
     const colId = e.currentTarget.dataset.col;
     const files = Array.from(e.dataTransfer.files).filter(
-      f => f.name.endsWith('.eml') || f.type === 'message/rfc822'
+      f => f.name.endsWith('.eml') || f.name.endsWith('.msg') ||
+           f.type === 'message/rfc822' || f.type === 'application/vnd.ms-outlook'
     );
     if (files.length === 0) {
-      alert('Bitte eine .eml-Datei ablegen.');
+      alert('Bitte eine Outlook-Email (.msg) oder .eml-Datei ablegen.');
       return;
     }
     for (const file of files) {
@@ -240,7 +241,7 @@ async function deleteTicket(id) {
 function openFilePicker(colId) {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.eml,message/rfc822';
+  input.accept = '.eml,.msg,message/rfc822,application/vnd.ms-outlook';
   input.multiple = true;
   input.onchange = async () => {
     for (const file of Array.from(input.files)) {
