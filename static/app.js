@@ -172,7 +172,8 @@ function onColumnDragOver(e) {
   const types = Array.from(e.dataTransfer.types);
   if (types.includes('Files') || types.includes('text/plain')) {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
+    // 'copy' for external files (Outlook), 'move' for internal ticket drags
+    e.dataTransfer.dropEffect = types.includes('Files') ? 'copy' : 'move';
     const col = e.currentTarget;
     document.querySelectorAll('.column').forEach(c => c.classList.remove('drag-over'));
     col.classList.add('drag-over');
