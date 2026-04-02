@@ -97,6 +97,7 @@ def parse_eml(file_bytes):
         'from_email': from_email,
         'date': date_formatted,
         'preview': preview,
+        'body': body,
         'message_id': message_id.strip('<>'),
     }
 
@@ -156,6 +157,7 @@ def parse_msg(file_bytes):
         'from_email': from_email,
         'date': date_formatted,
         'preview': preview,
+        'body': body,
         'message_id': str(uuid.uuid4()),
     }
 

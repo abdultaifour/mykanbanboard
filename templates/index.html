@@ -46,6 +46,23 @@
 <!-- Drag overlay -->
 <div id="drag-ghost" class="drag-ghost hidden"></div>
 
+<!-- Detail Modal -->
+<div id="modal" class="modal-backdrop hidden" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-subject"></h2>
+      <button class="modal-close" onclick="closeModal()" title="Schließen">&#x2715;</button>
+    </div>
+    <div class="modal-meta">
+      <div><strong>Von:</strong> <span id="modal-from"></span></div>
+      <div><strong>Datum:</strong> <span id="modal-date"></span></div>
+    </div>
+    <div class="modal-body-scroll">
+      <pre id="modal-body"></pre>
+    </div>
+  </div>
+</div>
+
 <script src="/static/app.js"></script>
 </body>
 </html>

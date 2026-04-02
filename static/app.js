@@ -120,6 +120,12 @@ function makeTicketEl(ticket) {
     <div class="ticket-date">${esc(ticket.date)}</div>
   `;
 
+  // Click → open detail modal (but not on delete button)
+  el.addEventListener('click', e => {
+    if (e.target.closest('.ticket-delete')) return;
+    openModal(ticket);
+  });
+
   // Drag events for reordering / column move
   el.addEventListener('dragstart', e => {
     dragId = ticket.id;
@@ -166,7 +172,7 @@ function onColumnDragOver(e) {
   const types = Array.from(e.dataTransfer.types);
   if (types.includes('Files') || types.includes('text/plain')) {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    e.dataTransfer.dropEffect = 'copy';
     const col = e.currentTarget;
     document.querySelectorAll('.column').forEach(c => c.classList.remove('drag-over'));
     col.classList.add('drag-over');
@@ -255,6 +261,28 @@ function toggleHowto(e) {
   e.preventDefault();
   document.getElementById('howto').classList.toggle('hidden');
 }
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+
+function openModal(ticket) {
+  const modal = document.getElementById('modal');
+  document.getElementById('modal-subject').textContent = ticket.subject;
+  document.getElementById('modal-from').textContent =
+    ticket.from_name ? `${ticket.from_name} <${ticket.from_email}>` : ticket.from_email;
+  document.getElementById('modal-date').textContent = ticket.date;
+  document.getElementById('modal-body').textContent = ticket.body || ticket.preview || '(kein Inhalt)';
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
